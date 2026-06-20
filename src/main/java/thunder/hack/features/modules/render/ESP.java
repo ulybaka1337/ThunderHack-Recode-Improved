@@ -18,6 +18,11 @@ import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
 import net.minecraft.item.Items;
 import net.minecraft.particle.EntityEffectParticleEffect;
 import net.minecraft.particle.ParticleEffect;
+import net.minecraft.scoreboard.ReadableScoreboardScore;
+import net.minecraft.scoreboard.ScoreboardDisplaySlot;
+import net.minecraft.scoreboard.ScoreboardObjective;
+import net.minecraft.scoreboard.number.StyledNumberFormat;
+import net.minecraft.text.MutableText;
 import net.minecraft.util.math.*;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
@@ -59,6 +64,7 @@ public class ESP extends Module {
     private final Setting<Boolean> pearls = new Setting<>("Pearls", false);
     private final Setting<Boolean> dizorentRadius = new Setting<>("DizorentRadius", true);
     private final Setting<ColorSetting> dizorentColor = new Setting<>("DizorentColor", new ColorSetting(new Color(0xB300F1CC, true)), v -> dizorentRadius.getValue());
+    private final Setting<Boolean> funtimeHp = new Setting<>("FunTimeHp", false);
 
     private final Setting<SettingGroup> boxEsp = new Setting<>("Box", new SettingGroup(false, 0));
     private final Setting<Boolean> players = new Setting<>("Players", true).addToGroup(boxEsp);
@@ -88,6 +94,28 @@ public class ESP extends Module {
     private final Setting<ColorSetting> healthOutlineC = new Setting<>("healthOutlineC", new ColorSetting(new Color(0x000000))).addToGroup(boxColors);
 
     private float dizorentAnimation = 0f;
+
+    public float getHealth(PlayerEntity ent) {
+        // спасiбо тебе о вэлехий пончiр за хп резольвiр из NameTags.java
+        if ((mc.getNetworkHandler() != null && mc.getNetworkHandler().getServerInfo() != null && mc.getNetworkHandler().getServerInfo().address.contains("funtime") || funtimeHp.getValue())) {
+            ScoreboardObjective scoreBoard = null;
+            String resolvedHp = "";
+            if ((ent.getScoreboard()).getObjectiveForSlot(ScoreboardDisplaySlot.BELOW_NAME) != null) {
+                scoreBoard = (ent.getScoreboard()).getObjectiveForSlot(ScoreboardDisplaySlot.BELOW_NAME);
+                if (scoreBoard != null) {
+                    ReadableScoreboardScore readableScoreboardScore = ent.getScoreboard().getScore(ent, scoreBoard);
+                    MutableText text2 = ReadableScoreboardScore.getFormattedScore(readableScoreboardScore, scoreBoard.getNumberFormatOr(StyledNumberFormat.EMPTY));
+                    resolvedHp = text2.getString();
+                }
+            }
+            float numValue = 0;
+            try {
+                numValue = Float.parseFloat(resolvedHp);
+            } catch (NumberFormatException ignored) {
+            }
+            return numValue;
+        } else return ent.getHealth() + ent.getAbsorptionAmount();
+    }
 
     public void onRender3D(MatrixStack stack) {
         if(mc.options.hudHidden) return;
@@ -426,6 +454,12 @@ public class ESP extends Module {
 
             if (ent instanceof LivingEntity lent && lent.getHealth() != 0 && renderHealth.getValue()) {
 
+                float entHealth = 0;
+                if (lent instanceof PlayerEntity pent && funtimeHp.getValue())
+                    entHealth = getHealth(pent);
+                else
+                    entHealth = lent.getHealth();
+
                 if (healthOutline.getValue())
                     Render2DEngine.setRectPoints(bufferBuilder, matrix, (float) (posX - 5.5), (float) (posY - 0.5), (float) (posX - 2.5), (float) (endPosY + 0.5), healthOutlineC.getValue().getColorObject(), healthOutlineC.getValue().getColorObject(), healthOutlineC.getValue().getColorObject(), healthOutlineC.getValue().getColorObject());
 
@@ -433,9 +467,9 @@ public class ESP extends Module {
 
                 switch (colorMode.getValue()) {
                     case Custom ->
-                            Render2DEngine.setRectPoints(bufferBuilder, matrix, (float) (posX - 5), (float) (endPosY + (posY - endPosY) * lent.getHealth() / lent.getMaxHealth()), (float) posX - 3, (float) endPosY, healthB.getValue().getColorObject(), healthB.getValue().getColorObject(), healthU.getValue().getColorObject(), healthU.getValue().getColorObject());
+                            Render2DEngine.setRectPoints(bufferBuilder, matrix, (float) (posX - 5), (float) (endPosY + (posY - endPosY) * entHealth / lent.getMaxHealth()), (float) posX - 3, (float) endPosY, healthB.getValue().getColorObject(), healthB.getValue().getColorObject(), healthU.getValue().getColorObject(), healthU.getValue().getColorObject());
                     case SyncColor ->
-                            Render2DEngine.setRectPoints(bufferBuilder, matrix, (float) (posX - 5), (float) (endPosY + (posY - endPosY) * lent.getHealth() / lent.getMaxHealth()), (float) posX - 3, (float) endPosY, HudEditor.getColor(90), HudEditor.getColor(90), HudEditor.getColor(270), HudEditor.getColor(270));
+                            Render2DEngine.setRectPoints(bufferBuilder, matrix, (float) (posX - 5), (float) (endPosY + (posY - endPosY) * entHealth / lent.getMaxHealth()), (float) posX - 3, (float) endPosY, HudEditor.getColor(90), HudEditor.getColor(90), HudEditor.getColor(270), HudEditor.getColor(270));
                 }
             }
         }
