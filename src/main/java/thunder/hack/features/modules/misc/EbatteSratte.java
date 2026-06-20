@@ -92,9 +92,15 @@ public class EbatteSratte extends Module {
                     return;
                 }
 
+                String[] cartel;
 
-                if (mode.getValue() == Messages.Default) n = (int) Math.floor(Math.random() * WORDS.length);
-                else if (mode.getValue() == Messages.UlybakaHuevo) n = (int) Math.floor(Math.random() * ULYBAKA1337.length);
+                if (mode.getValue() == Messages.Default) {
+                    n = (int) Math.floor(Math.random() * WORDS.length);
+                    cartel = WORDS;
+                } else if (mode.getValue() == Messages.UlybakaHuevo) {
+                    n = (int) Math.floor(Math.random() * ULYBAKA1337.length);
+                    cartel = ULYBAKA1337;
+                }
                 else n = (int) Math.floor(Math.random() * words.size());
 
                 String chatPrefix = switch (server.getValue()) {
@@ -105,10 +111,9 @@ public class EbatteSratte extends Module {
                 };
 
                 if (chatPrefix.contains("/"))
-                    mc.getNetworkHandler().sendChatCommand("/msg " + entity.getName().getString() + " " + (mode.getValue() == Messages.Default ? WORDS[n] : words.get(n)));
+                    mc.getNetworkHandler().sendChatCommand("/msg " + entity.getName().getString() + " " + (mode.getValue() == Messages.Default ? cartel[n] : words.get(n)));
                 else
-                    mc.getNetworkHandler().sendChatMessage(chatPrefix + entity.getName().getString() + " " + (mode.getValue() == Messages.Default ? WORDS[n] : words.get(n)));
-
+                    mc.getNetworkHandler().sendChatMessage(chatPrefix + entity.getName().getString() + " " + (mode.getValue() == Messages.Default ? cartel[n] : words.get(n)));
 
                 timer.reset();
             }
