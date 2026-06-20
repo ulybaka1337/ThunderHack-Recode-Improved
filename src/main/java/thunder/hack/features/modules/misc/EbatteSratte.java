@@ -92,7 +92,7 @@ public class EbatteSratte extends Module {
                     return;
                 }
 
-                String[] cartel;
+                String[] cartel = WORDS;
 
                 if (mode.getValue() == Messages.Default) {
                     n = (int) Math.floor(Math.random() * WORDS.length);
@@ -111,9 +111,9 @@ public class EbatteSratte extends Module {
                 };
 
                 if (chatPrefix.contains("/"))
-                    mc.getNetworkHandler().sendChatCommand("/msg " + entity.getName().getString() + " " + (mode.getValue() == Messages.Default ? cartel[n] : words.get(n)));
+                    mc.getNetworkHandler().sendChatCommand("/msg " + entity.getName().getString() + " " + (mode.getValue() != Messages.Custom ? cartel[n] : words.get(n)));
                 else
-                    mc.getNetworkHandler().sendChatMessage(chatPrefix + entity.getName().getString() + " " + (mode.getValue() == Messages.Default ? cartel[n] : words.get(n)));
+                    mc.getNetworkHandler().sendChatMessage(chatPrefix + entity.getName().getString() + " " + (mode.getValue() != Messages.Custom ? cartel[n] : words.get(n)));
 
                 timer.reset();
             }
