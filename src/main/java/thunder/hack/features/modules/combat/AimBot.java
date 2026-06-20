@@ -38,7 +38,7 @@ public final class AimBot extends Module {
     private final Setting<Integer> aimSmooth = new Setting<>("AimSmooth", 45, 1, 180, v -> mode.getValue() == Mode.AimAssist);
     private final Setting<Integer> aimtime = new Setting<>("AimTime", 2, 1, 10, v -> mode.getValue() == Mode.AimAssist);
     private final Setting<Boolean> ignoreWalls = new Setting<>("IgnoreWalls", true, v -> mode.getValue() == Mode.CSAim || mode.is(Mode.AimAssist));
-    private final Setting<Boolean> ignoreTeam = new Setting<>("IgnoreTeam", true, v -> mode.getValue() == Mode.CSAim || mode.is(Mode.AimAssist));
+    private final Setting<Boolean> ignoreTeam = new Setting<>("IgnoreTeam", true);
     private final Setting<Integer> reactionTime = new Setting<>("ReactionTime", 80, 1, 500, v -> mode.getValue() == Mode.AimAssist && !ignoreWalls.getValue());
     private final Setting<Boolean> ignoreInvisible = new Setting<>("IgnoreInvis", false, v -> mode.is(Mode.AimAssist));
     private final Setting<Float> rotYawRandom = new Setting<>("YawRandom", 0f, 0f, 3f, v -> mode.getValue() == Mode.CSAim);
@@ -54,6 +54,7 @@ public final class AimBot extends Module {
     private float rotationYaw, rotationPitch, assistAcceleration;
     private int aimTicks = 0;
     private Timer visibleTime = new Timer();
+    boolean hasTarget = false;
 
     public AimBot() {
         super("AimBot", Category.COMBAT);
@@ -66,7 +67,14 @@ public final class AimBot extends Module {
 
             PlayerEntity nearestTarget = Managers.COMBAT.getTargetByFOV(128);
 
-            if (nearestTarget == null) return;
+            skipEntity(target);
+
+            if (nearestTarget == null) {
+                hasTarget = false;
+                return;
+            }
+
+            hasTarget = true;
 
             float currentDuration = (float) (mc.player.getActiveItem().getMaxUseTime(mc.player) - mc.player.getItemUseTime()) / 20.0f;
 
@@ -109,6 +117,8 @@ public final class AimBot extends Module {
                         visibleTime.reset();
                 }
 
+                hasTarget = true;
+
                 if (!visibleTime.passedMs(reactionTime.getValue())) {
                     rotationYaw = Float.NaN;
                     return;
@@ -135,6 +145,8 @@ public final class AimBot extends Module {
     public void onSync(EventSync event) {
         if (mode.is(Mode.AimAssist))
             return;
+
+        if (!hasTarget) return;
 
         if (mode.is(Mode.CSAim)) {
             if (target != null && (mc.player.canSee(target) || ignoreWalls.getValue())) {
@@ -163,6 +175,9 @@ public final class AimBot extends Module {
     }
 
     public void onRender3D(MatrixStack stack) {
+
+        if (!hasTarget) return;
+
         if (mode.getValue() == Mode.AimAssist) {
             if (Float.isNaN(rotationYaw)) return;
             mc.player.setYaw((float) Render2DEngine.interpolate(mc.player.getYaw(), rotationYaw, assistAcceleration));
@@ -215,6 +230,8 @@ public final class AimBot extends Module {
             return;
         }
 
+        hasTarget = true;
+
         Vec3d targetVec = getResolvedPos(target).add(0, part.getValue().getH(), 0);
 
         if (targetVec == null)
@@ -254,6 +271,7 @@ public final class AimBot extends Module {
             }
         }
         target = best_entity;
+        if (target == null) hasTarget = false;
     }
 
     private boolean skipEntity(Entity entity) {
